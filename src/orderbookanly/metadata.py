@@ -16,6 +16,7 @@ def fetch_market(market, api_key):
                       headers={"x-api-key": api_key, "Accept": "application/json"})
     with urlopen(request, timeout=15) as response:
         payload = json.load(response)
+        log.info(payload=payload)
     data = payload.get("data")
     if payload.get("success") is not True or not isinstance(data, dict):
         raise ValueError("Invalid market metadata response")
