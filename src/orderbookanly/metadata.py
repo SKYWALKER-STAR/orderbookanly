@@ -10,6 +10,7 @@ log = logging.getLogger(__name__)
 
 
 def fetch_market(market, api_key):
+    log.info("Fetching market metadata for market=%s", market)
     if not str(market).isdigit():
         raise ValueError("Market ID must be numeric")
     request = Request(f"https://api.predict.fun/v1/markets/{market}?includeStats=true",
