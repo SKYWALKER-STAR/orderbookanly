@@ -1,5 +1,14 @@
 # Design System: Modern Trading Dashboard
 
+## Depth & Microstructure View
+Follow the supplied ODI prototype: a 2:1 formula/controller row, a 2:1 time-series
+and cumulative-depth row, three lower analytics panels, then a full-width market
+matrix and methodology note. Use #181c24 panels with 8px corners, #0a0e16 chart
+surfaces, #00f59b bid pressure, #ffb3b5 ask pressure and #7fe5ff spread metrics.
+Keep native controls functional. Label snapshots, sample counts and units accurately;
+unavailable replenishment and order-survival metrics display an explicit empty state.
+Do not reproduce simulated latency, fake risk classifications or prototype sample data.
+
 ## 1. Visual Theme & Atmosphere
 Reference: Stitch project 16070217059742388694, Live Terminal screen
 2f4bbafbb776415d937f687a83f39543. A dense, read-only prediction-market terminal.

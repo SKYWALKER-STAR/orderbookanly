@@ -23,7 +23,7 @@ st.html(Path(__file__).with_name("dashboard.css").read_text(encoding="utf-8"))
 st.sidebar.markdown("### PREDICT.FUN")
 st.sidebar.caption("ORDERBOOK TERMINAL")
 st.sidebar.divider()
-view = st.sidebar.radio("QUANTITATIVE VIEWS", ["实时监控看板", "ClickHouse 快照"])
+view = st.sidebar.radio("QUANTITATIVE VIEWS", ["实时监控看板", "深度与微观结构", "ClickHouse 快照"])
 st.sidebar.divider()
 visible_levels = st.sidebar.slider("每侧显示档位", 5, 50, 5, 5)
 st.sidebar.caption("ENGINE TELEMETRY")
@@ -178,7 +178,15 @@ def history():
             client.close()
 
 
+@st.fragment(run_every=cfg.getfloat("visualization", "refresh_seconds"))
+def microstructure():
+    from orderbookanly.microstructure import render
+    render(cfg, market, outcome, catalog)
+
+
 if view == "实时监控看板":
     live()
+elif view == "深度与微观结构":
+    microstructure()
 else:
     history()

@@ -139,3 +139,10 @@ class SnapshotStore:
         return self.client.query(f"SELECT * FROM {self.table} WHERE market_id = {{market:String}} "
                                  "ORDER BY snapshot_at DESC LIMIT {limit:UInt32}",
                                  parameters={"market": market, "limit": limit}).named_results()
+
+    def history_window(self, market, since, limit):
+        return self.client.query(
+            f"SELECT snapshot_at, bids, asks FROM {self.table} "
+            "WHERE market_id = {market:String} AND snapshot_at >= {since:DateTime64(3)} "
+            "ORDER BY snapshot_at DESC LIMIT {limit:UInt32}",
+            parameters={"market": market, "since": since, "limit": limit}).named_results()
