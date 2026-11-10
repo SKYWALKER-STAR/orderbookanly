@@ -1,6 +1,7 @@
 """Fetch and persist market descriptions before opening the order-book stream."""
 import json
 import logging
+import requests
 from urllib.request import Request, urlopen
 
 from .config import market_ids
@@ -16,9 +17,11 @@ def fetch_market(market, api_key):
     request = Request(f"https://api.predict.fun/v1/markets/{market}?includeStats=true",
                       headers={"x-api-key": api_key, "Accept": "application/json"})
     log.info("Sending request to fetch market metadata for market=%s", market)
-    with urlopen(request, timeout=15) as response:
-        payload = json.load(response)
-        log.info("Received market metadata payload for market=%s: %s", market, payload)
+    response = requests.request("GET", request.full_url, headers=request.headers)
+    payload = json.loads(response.text)
+    #with urlopen(request, timeout=15) as response:
+    #   payload = json.load(response)
+    #    log.info("Received market metadata payload for market=%s: %s", market, payload)
     data = payload.get("data")
     if payload.get("success") is not True or not isinstance(data, dict):
         log.error("Invalid market metadata response for market=%s: %s", market, payload)
