@@ -18,6 +18,7 @@ def fetch_market(market, api_key):
         payload = json.load(response)
         log.info(payload=payload)
     data = payload.get("data")
+    print(data)
     if payload.get("success") is not True or not isinstance(data, dict):
         raise ValueError("Invalid market metadata response")
     if str(data.get("id")) != str(market):
