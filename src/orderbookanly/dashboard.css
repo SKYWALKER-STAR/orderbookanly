@@ -4,7 +4,8 @@
 .stApp { background:#0f131c; color:#dfe2ee; }
 [data-testid="stHeader"], [data-testid="stSidebar"] { background:#0a0e16; }
 [data-testid="stSidebar"] { border-right:1px solid #181c24; }
-.stMainBlockContainer { max-width:1800px; padding:1rem .75rem 2rem; }
+/* Reserve space for Streamlit's fixed header and a small content gutter. */
+.stMainBlockContainer { max-width:1800px; padding:4.5rem .75rem 2rem; }
 [data-testid="stVerticalBlock"] { gap:.6rem; }
 [data-testid="stCaptionContainer"] { color:#b9cbbd; font-size:11px; }
 h1,h2,h3 { font-family:"Space Grotesk","Microsoft YaHei",sans-serif; }
@@ -33,9 +34,7 @@ h3 { font-size:18px !important; }
 .panel-label span { margin-left:12px; }
 .terminal h3 { margin:0 0 7px; padding:0; font-size:18px; line-height:1.3; }
 .terminal h3 small { font:10px "JetBrains Mono",Consolas,monospace; color:#7fe5ff; }
-.depth-svg { display:block; width:100%; height:auto; max-height:190px; background:#181c24; }
-.depth-grid { stroke:#31353e; stroke-dasharray:3 5; fill:none; }
-.depth-svg text { fill:#b9cbbd; font-size:10px; font-family:monospace; }
+.terminal .depth-chart { display:block; width:100%; max-width:100%; height:170px; background:#181c24; }
 .terminal table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px; }
 .terminal th { color:#b9cbbd; background:#181c24; font-weight:400; font-size:10px; letter-spacing:.04em; }
 .terminal th,.terminal td { text-align:right; padding:4px 7px; border:0; overflow-wrap:anywhere; }
@@ -62,7 +61,7 @@ h3 { font-size:18px !important; }
 button:focus-visible,input:focus-visible { outline:2px solid #00f59b; outline-offset:2px; }
 @media (max-width:1100px) { .telemetry-strip { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 @media (max-width:767px) {
-.stMainBlockContainer { padding:1rem .5rem; }
+.stMainBlockContainer { padding-left:.5rem; padding-right:.5rem; }
 .telemetry-strip { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .terminal table { font-size:10px; }
 .terminal td,.terminal th { padding:5px 3px; }

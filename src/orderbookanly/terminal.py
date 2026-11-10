@@ -1,5 +1,6 @@
 """Escaped, read-only terminal markup backed exclusively by stored book data."""
 from datetime import datetime, timezone
+from base64 import b64encode
 from decimal import Decimal
 from html import escape
 import json
@@ -37,9 +38,12 @@ def depth_svg(bids, asks):
     high = max(p for p, _, _ in all_levels)
     span = high - low or Decimal(1)
     ceiling = max(c for _, _, c in all_levels) or Decimal(1)
-    parts = ['<svg class="depth-svg" viewBox="0 0 1000 150" role="img" aria-label="买卖盘累计深度，横轴价格，纵轴累计份额">']
+    # Render as an image: st.html sanitization can remove inline SVG elements.
+    # Image SVGs have their own document, so all styles must be self-contained.
+    parts = ['<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="150" viewBox="0 0 1000 150" preserveAspectRatio="none">',
+             '<rect width="1000" height="150" fill="#181c24"/>']
     for y in (30, 65, 100):
-        parts.append(f'<path d="M8 {y} H992" class="depth-grid"/>')
+        parts.append(f'<path d="M8 {y} H992" stroke="#31353e" stroke-dasharray="3 5" fill="none"/>')
     for rows, color in ((bids, "#00f59b"), (asks, "#ffb3b5")):
         if not rows:
             continue
@@ -51,8 +55,10 @@ def depth_svg(bids, asks):
         parts.append(f'<path d="{path}" fill="none" stroke="{color}" stroke-width="2"/>')
         for x, y in (points[0], points[-1]):
             parts.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="2" fill="{color}"/>')
-    parts.append(f'<text x="8" y="143">{fmt(low)}</text><text x="992" y="143" text-anchor="end">{fmt(high)} PRICE</text></svg>')
-    return ''.join(parts)
+    parts.append(f'<g fill="#b9cbbd" font-size="10" font-family="monospace"><text x="8" y="143">{fmt(low)}</text><text x="992" y="143" text-anchor="end">{fmt(high)} PRICE</text></g></svg>')
+    encoded = b64encode(''.join(parts).encode('utf-8')).decode('ascii')
+    return (f'<img class="depth-chart" src="data:image/svg+xml;base64,{encoded}" '
+            'width="1000" height="150" alt="买卖盘累计深度：绿色为买盘，粉色为卖盘；横轴价格，纵轴累计份额"/>')
 
 
 def render_book(book, market, outcome, depth, limit, age=None, metadata=None):
