@@ -25,6 +25,8 @@ h3 { font-size:18px !important; }
 .market-banner { display:flex; align-items:center; gap:18px; background:#0a0e16; padding:12px; margin:8px 0; border-left:3px solid #00f59b; flex-wrap:wrap; }
 .market-banner h2 { font-size:18px; margin:0 0 4px; padding:0; }
 .market-banner small { font-size:10px; color:#b9cbbd; }
+.market-banner > div { min-width:0; overflow-wrap:anywhere; }
+.outcome-token { width:100%; overflow-wrap:anywhere; user-select:text; }
 .perspective { background:#00f59b; color:#003920; padding:5px 24px; font-weight:700; border-radius:3px; }
 .terminal-panel { background:#0a0e16; padding:8px; margin-bottom:8px; border-radius:3px; min-width:0; }
 .panel-label { color:#b9cbbd; font-size:10px; letter-spacing:.04em; margin-bottom:5px; }

@@ -24,6 +24,10 @@ async def collect(cfg, store):
     api_key = secret(cfg, "predict", "api_key_env")
     if not api_key:
         raise ValueError(f"Set environment variable {cfg['predict']['api_key_env']}")
+    from .metadata import sync_markets
+    # Startup prerequisite, outside the WebSocket reconnect loop. A failed sync
+    # aborts collection; reconnects do not repeatedly fetch the metadata.
+    await asyncio.to_thread(sync_markets, cfg, api_key)
     markets = market_ids(cfg)
     delay = cfg.getfloat("predict", "reconnect_seconds")
     timeout = cfg.getfloat("predict", "receive_timeout_seconds")

@@ -3,7 +3,7 @@ import asyncio
 import logging
 
 from .config import load_config, setup_logging
-from .storage import RedisStore, SnapshotStore, clickhouse_client, redis_client
+from .storage import MarketMetadataStore, RedisStore, SnapshotStore, clickhouse_client, redis_client
 
 
 def main(argv=None):
@@ -20,6 +20,7 @@ def main(argv=None):
             snapshots = SnapshotStore(ch, cfg)
         if args.command == "init-db":
             snapshots.initialize()
+            MarketMetadataStore(ch, cfg).initialize()
         else:
             redis = redis_client(cfg)
             redis.ping()

@@ -41,6 +41,18 @@ streamlit run src/orderbookanly/dashboard.py -- --config config/local.conf
 
 ## 数据语义与一致性
 
+### 市场元数据
+
+每次启动 `orderbook collect`（包括两个旧脚本入口）时，先按配置中的所有 `market_ids` 调用 `GET /v1/markets/{id}?includeStats=true`，使用同一个 `PREDICT_API_KEY`，然后写入 ClickHouse 的 `market_metadata` 表。所有市场同步成功后才连接 WebSocket；API 或 ClickHouse 失败会终止本次启动，修复后重新运行即可。WebSocket 重连不会重复同步。collect 因此也需要可用的 ClickHouse 连接和建表/写入权限。该流程不依赖先手动执行 init-db；init-db 也会创建元数据表。
+
+元数据以追加版本保存：`market_id`、UTC 抓取时间 `fetched_at`、`title`、`question`、`description`、`trading_status`、`status` 和完整 `metadata_json`。完整 JSON 保留 API 返回的其他字段（如 outcomes、结算信息、精度、费用及可选统计），无需为后续展示字段反复改表。每次启动保留一个新版本，不覆盖旧记录；多市场同步中途失败时，已成功写入的版本会保留。
+
+`MarketMetadataStore.latest(market_id)` 按抓取时间读取最新版本，返回常用列以及解析后的 `metadata` 字典。实时终端以 60 秒缓存读取该接口，显示市场标题、问题及存储状态，并在“市场元数据”中提供完整 JSON。元数据是采集启动时的快照，交易状态和统计不代表实时值；ClickHouse 读取失败时仍显示 Redis 订单簿。历史订单簿不会自动关联当前市场状态。当前不做定时元数据刷新或历史版本清理。
+
+接口依据：[Predict.fun Get market by ID](https://dev.predict.fun/api/markets/get-market-by-id)。
+
+市场选择器显示 `market ID · title`。Outcome 选项来自元数据 `outcomes[].name`，并展示当前选项对应的完整 `onChainId`（可复制）。盘口及增量转换按 `indexSet` 匹配：1 为上游原始盘口，2 为补数盘口，不根据名称或数组顺序判断。元数据缺失时仅展示“原始盘口（Outcome 未同步）”，不编造名称或链上 ID。当前转换仅支持 indexSet 1/2。标题及 Outcome 元数据在页面加载或控件触发完整刷新时读取，缓存 60 秒；盘口定时刷新不会改变当前选项映射。
+
 [Predict.fun 官方文档](https://dev.predict.fun/websocket/topics/order-book)规定每次 `predictOrderbook/{marketId}` 推送**完整 Yes 订单簿**，不是上游增量。系统对完整快照做差分，以绝对数量更新 Redis Hash；消失或数量为零的档位会删除。价格和数量规范化为十进制字符串，避免浮点价格键分裂。No 订单簿从 Yes 推导：价格变成 `1 - price`，买卖方向互换，不重复存储。
 
 每个市场的 Redis 键（默认前缀 `predict`）：
@@ -80,6 +92,7 @@ ClickHouse 的 `orderbook.snapshots` 表采用 MergeTree，按月分区、按市
 | `config.py` | 配置读取、基础校验、日志初始化 |
 | `book.py` | 规范化、差分、Yes/No 转换、纯函数分析 |
 | `collector.py` | 订阅、心跳、首份数据补取、重连 |
+| `metadata.py` | collect 启动前获取市场元数据并同步到 ClickHouse |
 | `storage.py` | Redis 原子更新、ClickHouse 建表/读写 |
 | `snapshot.py` | 独立周期快照任务 |
 | `dashboard.py` | 只读可视化，采集停止时仍可查看历史 |

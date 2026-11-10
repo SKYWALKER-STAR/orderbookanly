@@ -66,6 +66,46 @@ def clickhouse_client(cfg):
         secure=cfg.getboolean("clickhouse", "secure"), connect_timeout=5, send_receive_timeout=15)
 
 
+class MarketMetadataStore:
+    """Append-only metadata revisions; readers explicitly select the latest."""
+
+    def __init__(self, client, cfg):
+        self.client = client
+        self.database = cfg["clickhouse"]["database"]
+        self.table = f"{self.database}.market_metadata"
+
+    def initialize(self):
+        self.client.command(f"CREATE DATABASE IF NOT EXISTS {self.database}")
+        self.client.command(f"""CREATE TABLE IF NOT EXISTS {self.table} (
+            market_id String, fetched_at DateTime64(6, 'UTC'),
+            title String, question String, description String,
+            trading_status String, status String, metadata_json String
+        ) ENGINE = MergeTree PARTITION BY toYYYYMM(fetched_at)
+        ORDER BY (market_id, fetched_at)""")
+
+    def write(self, market, metadata):
+        if str(metadata.get("id")) != str(market):
+            raise ValueError("Market metadata ID mismatch")
+        names = ["market_id", "fetched_at", "title", "question", "description",
+                 "trading_status", "status", "metadata_json"]
+        row = [str(market), datetime.now(timezone.utc)]
+        row.extend(str(metadata.get(key) or "") for key in
+                   ("title", "question", "description", "tradingStatus", "status"))
+        row.append(json.dumps(metadata, ensure_ascii=False))
+        self.client.insert(self.table, [row], column_names=names)
+
+    def latest(self, market):
+        rows = list(self.client.query(
+            f"SELECT * FROM {self.table} WHERE market_id = {{market:String}} "
+            "ORDER BY fetched_at DESC LIMIT 1", parameters={"market": str(market)}
+        ).named_results())
+        if not rows:
+            return None
+        row = dict(rows[0])
+        row["metadata"] = json.loads(row.pop("metadata_json"))
+        return row
+
+
 class SnapshotStore:
     def __init__(self, client, cfg):
         self.client = client

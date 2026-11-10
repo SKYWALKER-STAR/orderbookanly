@@ -55,8 +55,9 @@ def depth_svg(bids, asks):
     return ''.join(parts)
 
 
-def render_book(book, market, outcome, depth, limit, age=None):
-    display = no_book(book) if outcome == "No" else book
+def render_book(book, market, outcome, depth, limit, age=None, metadata=None):
+    display = no_book(book) if outcome["indexSet"] == 2 else book
+    outcome_name = outcome["name"]
     m = analyze(display, depth)
     bids, asks = levels(display, "bids"), levels(display, "asks")
     total = m['bid_depth'] + m['ask_depth']
@@ -64,8 +65,8 @@ def render_book(book, market, outcome, depth, limit, age=None):
     def card(label, value, detail, tone="", ratio=None):
         bar = '' if ratio is None else f'<div class="meter"><i style="width:{ratio*100:.2f}%"></i></div>'
         cards.append(f'<div class="telemetry {tone}"><label>{label}</label><strong>{text(value)}</strong><small>{text(detail)}</small>{bar}</div>')
-    card('BEST BID', fmt(m['best_bid']), f'{outcome.upper()} · {fmt(bids[0][1], 2) if bids else "—"} SH', 'bid')
-    card('BEST ASK', fmt(m['best_ask']), f'{outcome.upper()} · {fmt(asks[0][1], 2) if asks else "—"} SH', 'ask')
+    card('BEST BID', fmt(m['best_bid']), f'{outcome_name} · {fmt(bids[0][1], 2) if bids else "—"} SH', 'bid')
+    card('BEST ASK', fmt(m['best_ask']), f'{outcome_name} · {fmt(asks[0][1], 2) if asks else "—"} SH', 'ask')
     card('SPREAD', fmt(m['spread']), '最优卖价 − 最优买价', 'cyan')
     card('MIDPOINT [L2]', fmt(m['mid_price']), '最优报价中间价')
     card(f'BID DEPTH N={depth}', fmt(m['bid_depth'], 2), 'SHARES / 买方份额', 'bid', m['bid_depth']/total if total else 0)
@@ -83,17 +84,24 @@ def render_book(book, market, outcome, depth, limit, age=None):
         return (f'<tr class="{side}{" best" if best else ""}" style="--depth:{width:.3f}%">'
                 f'<td>{fmt(p)} {badge}</td><td>{fmt(size, 2)}</td><td>{fmt(cumulative, 2)}</td><td>{fmt(p*100, 2)}%</td></tr>')
     ladder = ''.join(row(v, 'ask', i == 0) for i, v in reversed(list(enumerate(shown_asks))))
-    ladder += f'<tr class="spread-row"><td colspan="4">SPREAD: <b>{fmt(m["spread"])}</b><span> MID: {fmt(m["mid_price"])} · {text(outcome.upper())} PERSPECTIVE</span></td></tr>'
+    ladder += f'<tr class="spread-row"><td colspan="4">SPREAD: <b>{fmt(m["spread"])}</b><span> MID: {fmt(m["mid_price"])} · {text(outcome_name)} PERSPECTIVE</span></td></tr>'
     ladder += ''.join(row(v, 'bid', i == 0) for i, v in enumerate(shown_bids))
     if not all((bids, asks)):
         ladder += '<tr><td colspan="4" class="terminal-empty">部分或全部盘口为空；缺失报价显示为 —。</td></tr>'
+    metadata = metadata or {}
+    title = metadata.get('title') or metadata.get('question') or f'Market #{market}'
+    question = metadata.get('question') or ''
+    status = metadata.get('tradingStatus') or metadata.get('status') or '—'
     return (f'<div class="terminal"><section class="telemetry-strip">{"".join(cards)}</section>'
-            f'<section class="market-banner"><div><h2>Market #{text(market)}</h2><small>PREDICT.FUN · ORDERBOOK / 订单簿监控</small></div>'
-            f'<span class="perspective">{text(outcome.upper())} 视角</span><small>价格显示 4 位小数 · 原始精度见 Raw Inspector</small></section>'
+            f'<section class="market-banner"><div><h2>{text(title)}</h2><small>#{text(market)} · {text(question)}</small>'
+            f'<br><small>存储的市场状态 / {text(status)}</small></div>'
+            f'<span class="perspective">{text(outcome_name)} 视角</span>'
+            f'<small class="outcome-token">onChainId: {text(outcome.get("onChainId") or "未提供")}</small>'
+            f'<small>价格显示 4 位小数 · 原始精度见 Raw Inspector</small></section>'
             f'<section class="terminal-panel"><div class="panel-label">CUMULATIVE DEPTH PROFILE (BIDS VS ASKS)'
             f'<span class="bid"> Σ Bids: {fmt(bids[-1][2], 2) if bids else "0"}</span>'
             f'<span class="ask"> Σ Asks: {fmt(asks[-1][2], 2) if asks else "0"}</span></div>{depth_svg(bids, asks)}</section>'
-            f'<section class="terminal-panel"><h3><span class="bid">▤</span> L2 Orderbook Ladder <small>累计份额 / {text(outcome.upper())}</small></h3>'
+            f'<section class="terminal-panel"><h3><span class="bid">▤</span> L2 Orderbook Ladder <small>累计份额 / {text(outcome_name)}</small></h3>'
             f'<table class="ladder"><thead><tr><th>PRICE</th><th>SIZE (SHARES)</th><th>CUMULATIVE</th><th>IMPLIED %</th></tr></thead><tbody>{ladder}</tbody></table>'
             f'<div class="panel-foot">LADDER DOCK <span class="bid">每侧前 {limit} 档</span><span>深度指标前 {depth} 档 · 深度图含全部档位</span></div></section></div>')
 
@@ -106,7 +114,7 @@ def render_deltas(entries, outcome):
             for price, size in payload['changes'][side].items():
                 price, size = Decimal(price), Decimal(size)
                 shown_side = side
-                if outcome == 'No':
+                if outcome['indexSet'] == 2:
                     price = 1 - price
                     shown_side = 'asks' if side == 'bids' else 'bids'
                 tone = 'bid' if shown_side == 'bids' else 'ask'
@@ -116,6 +124,6 @@ def render_deltas(entries, outcome):
                             f'<td>{fmt(price)}</td><td class="{tone}">{fmt(size, 2)}</td></tr>')
     body = ''.join(rows) or '<tr><td colspan="5" class="terminal-empty">最近记录中暂无档位变更，等待下一次更新。</td></tr>'
     return (f'<section class="terminal terminal-panel stream-panel"><h3><span class="bid">※</span> Redis Stream <small class="bid">:deltas</small></h3>'
-            f'<div class="panel-label">最近 {len(entries)} 条消息 · {len(rows)} 个档位变更 · {text(outcome.upper())} 视角</div>'
+            f'<div class="panel-label">最近 {len(entries)} 条消息 · {len(rows)} 个档位变更 · {text(outcome["name"])} 视角</div>'
             '<div class="stream-scroll"><table class="delta-table"><thead><tr><th>UTC / STREAM ID</th><th>ACTION</th><th>SIDE</th><th>PRICE</th><th>SIZE</th></tr></thead>'
             f'<tbody>{body}</tbody></table></div><div class="panel-foot">SET = 设置绝对份额；DELETE = 删除档位。非成交量，非数量差值。</div></section>')
