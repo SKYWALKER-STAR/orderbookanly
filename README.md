@@ -61,6 +61,8 @@ ClickHouse 的 `orderbook.snapshots` 表采用 MergeTree，按月分区、按市
 
 ## 分析及展示
 
+展示页面参考 Modern Trading Dashboard 原型，采用深色终端布局。侧栏选择市场、Yes/No 和可见档位；实时终端提供报价指标、累计深度图、深度不平衡及带累计深度条的买卖盘。历史快照页签保留 Yes 趋势、快照选择与原始数据。图表统计全部档位，可见档位仅限制表格行数；前 N 档指标仍由配置决定。设计约定见 `DESIGN.md`。从仓库根目录启动时自动加载 `.streamlit/config.toml` 主题。
+
 - 最优买价、最优卖价、价差、中间价；缺少一侧时价差和中间价为 null。
 - 前 N 档买卖深度：份额之和（不是金额），N 由 `analysis.depth_levels` 指定。
 - 深度不平衡：`(买深度 - 卖深度) / (买深度 + 卖深度)`；总深度为零时为 null。
