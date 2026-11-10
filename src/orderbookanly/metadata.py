@@ -18,10 +18,13 @@ def fetch_market(market, api_key):
     log.info("Sending request to fetch market metadata for market=%s", market)
     with urlopen(request, timeout=15) as response:
         payload = json.load(response)
+        log.info("Received market metadata payload for market=%s: %s", market, payload)
     data = payload.get("data")
     if payload.get("success") is not True or not isinstance(data, dict):
+        log.error("Invalid market metadata response for market=%s: %s", market, payload)
         raise ValueError("Invalid market metadata response")
     if str(data.get("id")) != str(market):
+        log.error("Market metadata ID mismatch for market=%s: %s", market, data)
         raise ValueError("Market metadata ID mismatch")
     return data
 
