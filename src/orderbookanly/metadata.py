@@ -15,11 +15,10 @@ def fetch_market(market, api_key):
         raise ValueError("Market ID must be numeric")
     request = Request(f"https://api.predict.fun/v1/markets/{market}?includeStats=true",
                       headers={"x-api-key": api_key, "Accept": "application/json"})
+    log.info("Sending request to fetch market metadata for market=%s", market)
     with urlopen(request, timeout=15) as response:
         payload = json.load(response)
-        log.info(payload=payload)
     data = payload.get("data")
-    print(data)
     if payload.get("success") is not True or not isinstance(data, dict):
         raise ValueError("Invalid market metadata response")
     if str(data.get("id")) != str(market):
