@@ -36,6 +36,7 @@ def sync_markets(cfg, api_key):
         store.initialize()
         for market in market_ids(cfg):
             try:
+                log.info("Syncing market metadata for market=%s", market)
                 store.write(market, fetch_market(market, api_key))
             except Exception as exc:
                 # Do not surface HTTP headers, credentials or response payloads.
